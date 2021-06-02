@@ -54,13 +54,21 @@ func (s Sender) RunSender(conn *net.UDPConn) {
 
 				go func() {
 					if target.Networktwoip != ""{
-						ssp := s.SendPacket(networkTwo, target.Destinationname, config.HostName, target.Networktwoip, "networkTwo", "udp", conn)
+						ssp, err := s.SendPacket(networkTwo, target.Destinationname, config.HostName, target.Networktwoip, "networkTwo", "udp", conn)
+						if err != nil {
+							log.Errorf("Error on SendPacket: ", err)
+							return
+						}
 						s.SentPacket <- ssp
 					}
 				}()
 				go func() {
 					if target.Networkoneip != ""{
-						psp := s.SendPacket(networkOne, target.Destinationname, config.HostName, target.Networkoneip, "networkOne", "udp", conn)
+						psp, err := s.SendPacket(networkOne, target.Destinationname, config.HostName, target.Networkoneip, "networkOne", "udp", conn)
+						if err != nil {
+							log.Errorf("Error on SendPacket: ", err)
+							return
+						}
 						s.SentPacket <- psp
 					}
 
@@ -71,12 +79,13 @@ func (s Sender) RunSender(conn *net.UDPConn) {
 	}
 }
 
-func (s Sender) SendPacket(n *net.UDPAddr, destHost string, srcHost string, destIp string, connType string, protocol string, conn *net.UDPConn) *Packet {
+func (s Sender) SendPacket(n *net.UDPAddr, destHost string, srcHost string, destIp string, connType string, protocol string, conn *net.UDPConn) (*Packet, error) {
 
 	//build the packet
 	id, err := uuid.NewRandom()
 	if err != nil {
 		log.Error("Error creating UUID: ", err)
+		return nil, err
 	}
 
 	//TODO: make packet binary, but text works for now without causing size issues
@@ -94,6 +103,7 @@ func (s Sender) SendPacket(n *net.UDPAddr, destHost string, srcHost string, dest
 	j, err := json.Marshal(p)
 	if err != nil {
 		log.Error("Error Marshaling packet: ", err)
+		return nil, err
 	}
 
 	//send the packet
@@ -104,7 +114,7 @@ func (s Sender) SendPacket(n *net.UDPAddr, destHost string, srcHost string, dest
 		log.Infof("Packet Sent - SOURCE:%s, DEST:%s", conn.LocalAddr().String(), n.String())
 	}
 
-	return p
+	return p, nil
 
 }
 
